@@ -13,6 +13,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// create a route group for employee
+var employeeRoute = app.MapGroup("employees");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -24,6 +27,7 @@ app.UseHttpsRedirection();
 
 
 // Manual way of getting context out of the request here:
+//   *** this is called the request delegate pattern!!!
 // app.MapGet("/employees", (HttpContext context) => {
 //     context.Request...
 //     // once you get the context, you can actually 
@@ -31,6 +35,31 @@ app.UseHttpsRedirection();
 //     // manually by pulling aparth the context object!
 //     // we won't be doing it that way however
 // });
+//      Instead we are just going to use a plain old delegate pattern!!!
+employeeRoute.MapGet(string.Empty, () => {
+    // return employees; //this totally works, but you can also
+    // return with a status code attached
+    // a return with a status code is very explicit
+    // USE the Results class for returns!!
+    return Results.Ok(employees);
+});
+
+// you can constrain id to only be an int! {id:int}
+employeeRoute.MapGet("{id:int}", (int id) => {
+    var employee = employees.SingleOrDefault(e => e.Id == id);
+    if (employee == null)
+    {
+        return Results.NotFound();
+    }
+    return Results.Ok(employee);
+});
+
+employeeRoute.MapPost(string.Empty, (Employee employee) => 
+{
+    employee.Id = employees.Max(e => e.Id) + 1;
+    employees.Add(employee);
+    return Results.Created($"/employees/{employee.Id}", employee);
+});
 
 app.Run();
 
